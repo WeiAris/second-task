@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<title>line-chart</title>
+		<script src="d3.v4.min.js"></script>
+		<style>
+		body {}
+			
+			svg {
+				background: #EEEEE0;
+				margin-left: 12%;
+				margin-top: 20px;
+				font-family: "微软雅黑";
+				border-radius: 10px;
+			}
+			
+			.axis path,
+			.axis line {
+				fill: none;
+				stroke: #0F4DA8;
+				shape-rendering: crispEdges;
+				stroke-width: 2px;
+			}
+			
+			.axis text {
+				font-family: "微软雅黑";
+				font-size: 13px;
+				fill: #0F4DA8;
+			}
+			
+			.title {
+				font-family: arial;
+				font-size: 20px;
+				fill: #0F4DA8;
+			}
+			
+			.line {
+				fill: none;
+				stroke: url(#temperature-gradient);
+				stroke-width: 1.5px;
+			}
+		}
+		</style>
+	</head>
+
+	<body>
+		<svg width="960" height="500"></svg>
+		<script>
+			var svg = d3.select("svg"),
+				margin = {
+					top: 20,
+					right: 20,
+					bottom: 30,
+					left: 50
+				},
+				width = +svg.attr("width") - margin.left - margin.right,
+				height = +svg.attr("height") - margin.top - margin.bottom,
+				g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			var parseTime = d3.timeParse("%Y%m%d");
+			//zero-padded day of the month as a decimal number [01,31].日作为一个十进制数
+			// abbreviated month name.*缩写月的名称
+			//year without century as a decimal number [00,99].年没有世纪作为一个十进制数
+
+			var x = d3.scaleTime()
+				.rangeRound([0, width]);
+
+			var y = d3.scaleLinear()
+				.rangeRound([height, 0]);
+
+			var line = d3.line()
+				.x(function(d) {
+					return x(d.date);
+				})
+				.y(function(d) {
+					return y(d.temperature);
+				});
+
+			d3.tsv("tt.tsv", function(d) {
+				d.date = parseTime(d.date);
+				//console.log(d.date)
+				d.temperature = +d.temperature;
+				//console.log(d.temperature)
+				return d;
+			}, function(error, data) {
+				if(error) throw error;
+
+				x.domain(d3.extent(data, function(d) {
+					return d.date;
+				}));
+				y.domain(d3.extent(data, function(d) {
+					return d.temperature;
+				}));
+
+				svg.append("linearGradient")
+					.attr("id", "temperature-gradient")
+					.attr("gradientUnits", "userSpaceOnUse")
+					.attr("x1", 0)
+					.attr("y1", y(48)) //x1,y1代表渐变起始位置，
+					.attr("x2", 0)
+					.attr("y2", y(58)) //x2，y2代表渐变结束位置
+					.selectAll("stop")
+					.data([{
+							offset: "0%",
+							color: "#0F4DA8" //蓝色
+						},
+						{
+							offset: "50%",
+							color: "yellow"
+						},
+						{
+							offset: "50%",
+							color: "yellow"
+						},
+						{
+							offset: "100%",
+							color: "red"
+						}
+					])
+					.enter()
+					.append("stop")
+					.attr("offset", function(d) {
+						return d.offset;
+					})
+					.attr("stop-color", function(d) {
+						return d.color;
+					});
+				g.append("g")
+					.attr("transform", "translate(0," + height + ")")
+					.call(d3.axisBottom(x))
+					.attr('class', 'axis')
+					.append("text")
+					.attr("dy", "1.71em")
+					.attr("x", width)
+					.attr("fill", "#000")
+					.text("时间");
+
+				g.append("g")
+					.call(d3.axisLeft(y))
+					.attr('class', 'axis')
+					.append("text")
+					.attr("transform", "rotate(-90)")
+					.attr("y", 6)
+					.attr("dy", "0.71em")
+					.attr("text-anchor", "end")
+					.text("Temperature (ºF)");
+
+				g.append("path")
+					.datum(data)
+					.attr('class', 'line')
+					.attr("d", line);
+
+				g.append('text')
+					.attr('x', (width - 120) / 2)
+					.attr('y', 30)
+					.text('温度变化趋势')
+					.attr('class', 'title');
+			});
+		</script>
+	</body>
+
+</html>
